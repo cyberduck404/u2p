@@ -90,13 +90,11 @@ def main():
     ts = []
     for cleaned_url in cleaned_urls:
         if "?" in cleaned_url:
-            ts.append(
-                Thread(
-                    target=battering_ram,
-                    args=(cleaned_url, args.payload,),
-                    kwargs={'headers': x_headers, 'proxies': x_proxies}
-                )
-            )
+            ts.append(Thread(
+                target=battering_ram,
+                args=(cleaned_url, args.payload,),
+                kwargs={'headers': x_headers, 'proxies': x_proxies}
+            ))
     for t in ts:
         t.start()
     for t in ts:
