@@ -6,19 +6,30 @@ from urllib.parse import urlparse, parse_qs, urlencode
 from threading import Thread
 
 
-HARDCODED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".svg", ".json", ".css", ".js", ".webp", ".woff", ".woff2", ".eot", ".ttf", ".otf", ".mp4", ".txt"]
+HARDCODED_EXTENSIONS = [
+    ".jpg", ".jpeg", ".png", ".gif", ".pdf", ".svg", ".json", ".css", ".js", ".webp",
+    ".woff", ".woff2", ".eot", ".ttf", ".otf", ".mp4", ".txt"
+]
 
 p = argparse.ArgumentParser()
 p.add_argument('-p', '--payload', required=True, help='Specify payload then we roll')
 p.add_argument('-k', '--keyword', default='FUZZ', help='URL keyword, default is FUZZ')
 # p.add_argument('-d', '--url-dir', help='Specify URL Directory')
-p.add_argument('-mt', '--match-content-type', help='Matched content-type')
+p.add_argument('-mh', '--match-headers', help='Matched content-type')
 p.add_argument('-mc', '--match-status-code', type=int, help='Matched status code')
-p.add_argument('-mt', '--match-text', help='Matched text')
+p.add_argument('-mb', '--match-body', help='Matched text')
 # p.add_argument('-mr', '--match-regex', help='Matched regex')
 p.add_argument('-x', '--proxy', help='Specify your proxy, like http://127.0.0.1:8080')
 p.add_argument('-t', '--threads', type=int, default=64, help='Max Concurrency')
 args = p.parse_args()
+
+x_headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+}
+x_proxies = {
+    'http': args.proxy,
+    'https': args.proxy
+}
 
 def has_extension(url, extensions):
     parsed_url = urlparse(url)
@@ -43,14 +54,14 @@ def battering_ram(url, payload, headers=None, proxies=None):
         r = requests.get(url, headers=headers, proxies=proxies, verify=False)
     except requests.exceptions.RequestException as e:
         return
-    if args.match_content_type and (args.match_content_type not in r.headers['Content-Type']):
+    if args.match_headers and (args.match_headers not in str(r.headers)):
         return
     if args.match_status_code and (args.match_status_code != r.status_code):
         return
-    if args.match_text and (args.match_text not in r.text):
+    if args.match_body and (args.match_body not in r.text):
         return
     # todo://args.match_regex
-    sys.stdout.write(f'{url}\n')
+    sys.stdout.write(f"{url}\n")
 
 def main():
     if sys.stdin.isatty():
@@ -75,9 +86,19 @@ def main():
             cleaned_urls.add(cleaned_url)
     cleaned_urls = list(cleaned_urls)
     ts = []
-    for url in cleaned_urls:
-        if '?' in url:
-            t = Thread(target=battering_ram, args=(url, args.payload,))
+    for cleaned_url in cleaned_urls:
+        if "?" in cleaned_url:
+            ts.append(
+                Thread(
+                    target=battering_ram,
+                    args=(cleaned_url, args.payload,),
+                    kwargs={'headers': x_headers, 'proxies': x_proxies}
+                )
+            )
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
 
 
 if __name__ == '__main__':
