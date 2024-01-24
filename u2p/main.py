@@ -2,8 +2,10 @@
 import os, sys
 import argparse
 import requests
-from urllib.parse import urlparse, parse_qs, urlencode
+from urllib.parse import quote, urlparse, parse_qs, urlencode
 from threading import Thread
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
 HARDCODED_EXTENSIONS = [
@@ -49,7 +51,7 @@ def clean_url(url):
 def battering_ram(url, payload, headers=None, proxies=None):
     headers = headers if headers else dict()  # todo://
     proxies = proxies if proxies else dict()
-    url = url.replace(args.keyword, payload)
+    url = url.replace(args.keyword, quote(payload))
     try:
         r = requests.get(url, headers=headers, proxies=proxies, verify=False)
     except requests.exceptions.RequestException as e:
